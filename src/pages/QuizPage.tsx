@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuiz } from '../hooks/useQuiz'
 import { kanaData } from '../data/kanaData'
 import { getLearnedRomaji, saveWrongKana, saveQuizResult, getQuizStats } from '../db/db'
+import { useSpeech } from '../hooks/useSpeech'
 
 export default function QuizPage() {
   const navigate = useNavigate()
@@ -60,13 +61,7 @@ export default function QuizPage() {
     [feedback, handleSubmit, handleNext],
   )
 
-  const speak = useCallback((text: string) => {
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang = 'ja-JP'
-    utterance.rate = 0.9
-    speechSynthesis.cancel()
-    speechSynthesis.speak(utterance)
-  }, [])
+  const speak = useSpeech()
 
   return (
     <div className="h-full bg-white flex flex-col">

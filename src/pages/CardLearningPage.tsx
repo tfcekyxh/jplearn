@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { kanaData, rows, rowLabels, type RowKey } from '../data/kanaData'
 import { markKanaLearned } from '../db/db'
 import { useMnemonics } from '../hooks/useMnemonics'
+import { useSpeech } from '../hooks/useSpeech'
 import KanaCard from '../components/KanaCard'
 
 export default function CardLearningPage() {
@@ -46,13 +47,7 @@ export default function CardLearningPage() {
     setIndex(0)
   }, [])
 
-  const speak = useCallback((text: string) => {
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang = 'ja-JP'
-    utterance.rate = 0.9
-    speechSynthesis.cancel()
-    speechSynthesis.speak(utterance)
-  }, [])
+  const speak = useSpeech()
 
   const position = filtered.length > 0 ? `${safeIndex + 1} / ${filtered.length}` : '0 / 0'
 

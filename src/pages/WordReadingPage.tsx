@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { wordData } from '../data/wordData'
 import { saveWrongWord } from '../db/db'
+import { useSpeech } from '../hooks/useSpeech'
 import WordCard from '../components/WordCard'
 
 export default function WordReadingPage() {
@@ -39,13 +40,7 @@ export default function WordReadingPage() {
     setDone(false)
   }, [])
 
-  const speak = useCallback((text: string) => {
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang = 'ja-JP'
-    utterance.rate = 0.85
-    speechSynthesis.cancel()
-    speechSynthesis.speak(utterance)
-  }, [])
+  const speak = useSpeech()
 
   if (done) {
     return (
