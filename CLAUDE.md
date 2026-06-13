@@ -33,7 +33,7 @@ src/
 ├── App.tsx           # 路由定义: / /cards /quiz /read
 ├── index.css         # Tailwind 引入 + 全局样式 (html/body/#root height:100%)
 ├── pages/            # 页面组件 (每个路由对应一个)
-├── components/       # 可复用组件 (待填充)
+├── components/       # KanaCard (假名卡片)
 ├── data/             # kanaData.ts (46假名+行标签), wordData.ts (28单词)
 ├── hooks/            # 自定义 hooks (待填充)
 └── db/               # IndexedDB 封装 (待填充)
@@ -49,4 +49,4 @@ src/
 
 ## 当前进度
 
-阶段 1 (骨架搭建) + 阶段 2 (数据就位) 已完成。当前进入阶段 3: 卡片学习模块。
+阶段 1-3 已完成。当前进入阶段 4: 假名测验模块。
