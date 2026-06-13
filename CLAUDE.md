@@ -33,10 +33,11 @@ src/
 ├── App.tsx           # 路由定义: / /cards /quiz /read
 ├── index.css         # Tailwind 引入 + 全局样式 (html/body/#root height:100%)
 ├── pages/            # 页面组件 (每个路由对应一个)
-├── components/       # KanaCard (假名卡片), WordCard (单词卡片)
+├── components/       # KanaCard (假名卡片, 含口诀), WordCard (单词卡片)
 ├── data/             # kanaData.ts (46假名+行标签), wordData.ts (28单词)
-├── hooks/            # useQuiz (出题、判题、计分)
-└── db/               # IndexedDB: learned/wrong_kana/wrong_words/quiz_stats
+├── hooks/            # useQuiz (出题、判题、计分), useMnemonics (口诀生成/加载)
+├── db/               # IndexedDB: learned/wrong_kana/wrong_words/quiz_stats/mnemonics
+└── lib/              # glm.ts (Vercel AI SDK 封装, GLM-4-Flash 生成口诀)
 ```
 
 ## 架构约定
@@ -44,7 +45,7 @@ src/
 - **路由**: `/` 首页三个卡片入口 → `/cards` / `/quiz` / `/read`。无需布局组件，每个页面独立。
 - **样式**: 移动端优先, 375-430px 为设计目标。按钮/可点击元素最小 44×44px。黑白灰主色调, 淡蓝点缀。
 - **全屏布局**: `html/body/#root` 链式 `height: 100%`, 页面用 `h-full flex flex-col` 填满窗口。
-- **数据模型**: `Kana { hiragana, katakana, romaji, row, mnemonic }` (mnemonic 先留空, 后续 AI 生成); `Word { kana, kanji, meaning }`。
+- **AI 口诀**: Vercel AI SDK (`@ai-sdk/openai-compatible`) 直连智谱 GLM-4-Flash，批量或单条生成速记口诀，存 IndexedDB `mnemonics` store。
 - **测验范围**: 从 IndexedDB 中「已学过」的假名抽选，已学假名非空时自动限定题库。
 
 ## 当前进度
