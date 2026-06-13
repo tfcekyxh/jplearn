@@ -25,7 +25,7 @@ export default function HomePage() {
   const navigate = useNavigate()
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="h-full bg-white flex flex-col">
       <header className="pt-12 pb-6 text-center">
         <h1 className="text-3xl font-bold tracking-wide text-gray-900">
           五十音速成
