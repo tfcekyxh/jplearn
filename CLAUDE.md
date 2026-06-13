@@ -36,7 +36,7 @@ src/
 ├── components/       # KanaCard (假名卡片), WordCard (单词卡片)
 ├── data/             # kanaData.ts (46假名+行标签), wordData.ts (28单词)
 ├── hooks/            # useQuiz (出题、判题、计分)
-└── db/               # IndexedDB 封装 (待填充)
+└── db/               # IndexedDB: learned/wrong_kana/wrong_words/quiz_stats
 ```
 
 ## 架构约定
@@ -45,8 +45,8 @@ src/
 - **样式**: 移动端优先, 375-430px 为设计目标。按钮/可点击元素最小 44×44px。黑白灰主色调, 淡蓝点缀。
 - **全屏布局**: `html/body/#root` 链式 `height: 100%`, 页面用 `h-full flex flex-col` 填满窗口。
 - **数据模型**: `Kana { hiragana, katakana, romaji, row, mnemonic }` (mnemonic 先留空, 后续 AI 生成); `Word { kana, kanji, meaning }`。
-- **测验范围**: 从 IndexedDB 中「已学过」的假名抽选 (阶段 6 之前先用全量假名)。
+- **测验范围**: 从 IndexedDB 中「已学过」的假名抽选，已学假名非空时自动限定题库。
 
 ## 当前进度
 
-阶段 1-5 已完成。当前进入阶段 6: IndexedDB 持久化。
+阶段 1-6 已完成。当前进入阶段 7: 样式优化 + 动画。
