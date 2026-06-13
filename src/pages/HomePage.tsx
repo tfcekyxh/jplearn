@@ -1,6 +1,13 @@
 import { useNavigate } from 'react-router-dom'
 
-const entries = [
+interface Entry {
+  path: string
+  title: string
+  desc: string
+  icon: string
+}
+
+const entries: Entry[] = [
   {
     path: '/cards',
     title: '卡片学习',
