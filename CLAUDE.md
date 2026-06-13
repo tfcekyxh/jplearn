@@ -22,8 +22,8 @@ bun run tsc --noEmit # TypeScript 类型检查 (strict)
 - **语言**: TypeScript (strict 模式, `bundler` 模块解析)
 - **样式**: Tailwind CSS v4 (通过 `@tailwindcss/vite` 插件, `@import "tailwindcss"` 方式引入)
 - **路由**: React Router v7
-- **语音**: Web Speech API (`SpeechSynthesis`)
-- **持久化**: IndexedDB (待实现, 将封装于 `src/db/`)
+- **语音**: 预置 mp3 音频 (Edge TTS 生成, `new Audio()` 播放)
+- **持久化**: IndexedDB (5 个 object store, 封装于 `src/db/`)
 
 ## 目录结构
 
@@ -35,9 +35,13 @@ src/
 ├── pages/            # 页面组件 (每个路由对应一个)
 ├── components/       # KanaCard (假名卡片, 含口诀), WordCard (单词卡片)
 ├── data/             # kanaData.ts (46假名+行标签), wordData.ts (28单词)
-├── hooks/            # useQuiz (出题、判题、计分), useMnemonics (口诀生成/加载)
+├── hooks/            # useAudio (发音), useQuiz (出题判题计分), useMnemonics (口诀生成/加载)
 ├── db/               # IndexedDB: learned/wrong_kana/wrong_words/quiz_stats/mnemonics
 └── lib/              # glm.ts (Vercel AI SDK 封装, GLM-4-Flash 生成口诀)
+public/
+└── audio/            # 46 假名 + 28 单词 mp3 (Edge TTS 生成, 708KB)
+scripts/
+└── generate_audio.py # Edge TTS 音频批量生成脚本 (ja-JP-NanamiNeural)
 ```
 
 ## 架构约定
@@ -46,6 +50,7 @@ src/
 - **样式**: 移动端优先, 375-430px 为设计目标。按钮/可点击元素最小 44×44px。黑白灰主色调, 淡蓝点缀。
 - **全屏布局**: `html/body/#root` 链式 `height: 100%`, 页面用 `h-full flex flex-col` 填满窗口。
 - **AI 口诀**: Vercel AI SDK (`@ai-sdk/openai-compatible`) 直连智谱 GLM-4-Flash，批量或单条生成速记口诀，存 IndexedDB `mnemonics` store。
+- **发音方案**: `useAudio` hook 播放 `public/audio/` 下预置 mp3，不依赖浏览器 TTS。音频由 `scripts/generate_audio.py` 通过 Edge TTS 生成。
 - **测验范围**: 从 IndexedDB 中「已学过」的假名抽选，已学假名非空时自动限定题库。
 
 ## 当前进度

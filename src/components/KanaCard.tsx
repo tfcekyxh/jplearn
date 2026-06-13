@@ -2,7 +2,7 @@ import type { Kana } from '../data/kanaData'
 
 interface Props {
   kana: Kana
-  onSpeak: (text: string) => void
+  onSpeak: (url: string) => void
   isLoading?: boolean
   onRegenerate?: (romaji: string, hiragana: string, katakana: string) => void
 }
@@ -56,7 +56,7 @@ export default function KanaCard({ kana, onSpeak, isLoading, onRegenerate }: Pro
 
       {/* 发音按钮 */}
       <button
-        onClick={() => onSpeak(kana.hiragana)}
+        onClick={() => onSpeak(`/audio/${kana.romaji}.mp3`)}
         className="mt-3 w-14 h-14 rounded-full bg-blue-50 text-blue-500
                    flex items-center justify-center text-xl
                    active:bg-blue-100 active:scale-95 transition-all"

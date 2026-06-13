@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { kanaData, rows, rowLabels, type RowKey } from '../data/kanaData'
 import { markKanaLearned } from '../db/db'
 import { useMnemonics } from '../hooks/useMnemonics'
-import { useSpeech } from '../hooks/useSpeech'
+import { useAudio } from '../hooks/useAudio'
 import KanaCard from '../components/KanaCard'
 
 export default function CardLearningPage() {
@@ -47,7 +47,7 @@ export default function CardLearningPage() {
     setIndex(0)
   }, [])
 
-  const speak = useSpeech()
+  const playAudio = useAudio()
 
   const position = filtered.length > 0 ? `${safeIndex + 1} / ${filtered.length}` : '0 / 0'
 
@@ -111,7 +111,7 @@ export default function CardLearningPage() {
           <KanaCard
             key={current!.romaji}
             kana={enhancedCurrent}
-            onSpeak={speak}
+            onSpeak={playAudio}
             isLoading={isGenerating}
             onRegenerate={regenerateOne}
           />

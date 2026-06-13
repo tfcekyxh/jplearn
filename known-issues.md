@@ -4,17 +4,15 @@
 
 ---
 
-## 发音依赖系统语音包
+## ~~发音依赖系统语音包~~ ✅ 已解决
 
 **现象**：浏览器 `SpeechSynthesis` API 需要操作系统安装对应语言的语音包才能正确发音。如果系统没有日语 (ja-JP) 语音，发音会静默失败。
 
-**当前方案**：`src/hooks/useSpeech.ts` 做了降级处理——优先日语语音，找不到则用中文语音，再找不到用任意可用语音。中文语音读假名能出声，但发音不标准。
+**解决方案**：放弃 Web Speech API，改用预置音频文件方案。
 
-**待解决**：
-- [ ] 调研 Web Audio API + 预录音频（更可控，不依赖系统语音包）
-- [ ] 或使用 AI TTS API（如智谱 / OpenAI TTS）在线生成日语发音
-- [ ] 或预置假名发音音频文件 (mp3)，本地播放
+- 使用 Edge TTS (`ja-JP-NanamiNeural`) 一次性生成 46 个假名 + 28 个单词的 mp3 音频
+- 音频文件存放于 `public/audio/`，共 74 个文件，约 708KB
+- 播放改用 `new Audio(url).play()`，完全离线可用，不依赖系统语音包
+- 生成脚本：`scripts/generate_audio.py`（可重新运行以更新音频）
 
-**影响范围**：卡片学习、假名测验、拼读练习三个页面的发音按钮。
-
-**相关文件**：`src/hooks/useSpeech.ts`
+**相关文件**：`src/hooks/useAudio.ts`、`public/audio/`、`scripts/generate_audio.py`

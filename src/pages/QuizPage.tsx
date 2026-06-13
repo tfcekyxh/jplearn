@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuiz } from '../hooks/useQuiz'
 import { kanaData } from '../data/kanaData'
 import { getLearnedRomaji, saveWrongKana, saveQuizResult, getQuizStats } from '../db/db'
-import { useSpeech } from '../hooks/useSpeech'
+import { useAudio } from '../hooks/useAudio'
 
 export default function QuizPage() {
   const navigate = useNavigate()
@@ -61,7 +61,7 @@ export default function QuizPage() {
     [feedback, handleSubmit, handleNext],
   )
 
-  const speak = useSpeech()
+  const playAudio = useAudio()
 
   return (
     <div className="h-full bg-white flex flex-col">
@@ -149,7 +149,7 @@ export default function QuizPage() {
 
             <div className="flex gap-3 w-full">
               <button
-                onClick={() => speak(question.kana.hiragana)}
+                onClick={() => playAudio(`/audio/${question.kana.romaji}.mp3`)}
                 className="flex-1 py-4 rounded-xl bg-gray-100 text-gray-700
                            font-medium text-base active:bg-gray-200
                            transition-colors min-h-[48px]"

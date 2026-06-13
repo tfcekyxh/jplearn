@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { wordData } from '../data/wordData'
 import { saveWrongWord } from '../db/db'
-import { useSpeech } from '../hooks/useSpeech'
+import { useAudio } from '../hooks/useAudio'
 import WordCard from '../components/WordCard'
 
 export default function WordReadingPage() {
@@ -40,7 +40,7 @@ export default function WordReadingPage() {
     setDone(false)
   }, [])
 
-  const speak = useSpeech()
+  const playAudio = useAudio()
 
   if (done) {
     return (
@@ -92,7 +92,7 @@ export default function WordReadingPage() {
       </header>
 
       <main className="flex-1 flex items-center justify-center px-5 py-4">
-        <WordCard key={current.kana} word={current} onSpeak={speak} />
+        <WordCard key={current.kana} word={current} onSpeak={playAudio} />
       </main>
 
       <footer className="pb-8 px-5 flex gap-4">
