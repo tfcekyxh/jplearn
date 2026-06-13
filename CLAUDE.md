@@ -33,7 +33,7 @@ src/
 ├── App.tsx           # 路由定义: / /cards /quiz /read
 ├── index.css         # Tailwind 引入 + 全局样式 (html/body/#root height:100%)
 ├── pages/            # 页面组件 (每个路由对应一个)
-├── components/       # KanaCard (假名卡片)
+├── components/       # KanaCard (假名卡片), WordCard (单词卡片)
 ├── data/             # kanaData.ts (46假名+行标签), wordData.ts (28单词)
 ├── hooks/            # useQuiz (出题、判题、计分)
 └── db/               # IndexedDB 封装 (待填充)
@@ -49,4 +49,4 @@ src/
 
 ## 当前进度
 
-阶段 1-4 已完成。当前进入阶段 5: 拼读练习模块。
+阶段 1-5 已完成。当前进入阶段 6: IndexedDB 持久化。
