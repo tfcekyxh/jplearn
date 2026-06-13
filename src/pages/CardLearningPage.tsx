@@ -1,6 +1,7 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { kanaData, rows, rowLabels, type RowKey } from '../data/kanaData'
+import { markKanaLearned } from '../db/db'
 import KanaCard from '../components/KanaCard'
 
 export default function CardLearningPage() {
@@ -8,39 +9,34 @@ export default function CardLearningPage() {
   const [selectedRow, setSelectedRow] = useState<RowKey | null>(null)
   const [index, setIndex] = useState(0)
 
-  // 按行筛选
   const filtered = useMemo(
     () => (selectedRow ? kanaData.filter((k) => k.row === selectedRow) : kanaData),
     [selectedRow],
   )
 
-  // 安全修正 index（切换筛选条件时可能越界）
   const safeIndex = Math.min(index, Math.max(0, filtered.length - 1))
-
   const current = filtered[safeIndex]
 
-  // 翻页
+  // 当前假名自动标记为「已学」
+  useEffect(() => {
+    if (current) {
+      markKanaLearned(current.romaji)
+    }
+  }, [current])
+
   const goPrev = useCallback(() => {
-    setIndex((i) => {
-      const ni = i - 1
-      return ni < 0 ? filtered.length - 1 : ni
-    })
+    setIndex((i) => (i - 1 < 0 ? filtered.length - 1 : i - 1))
   }, [filtered.length])
 
   const goNext = useCallback(() => {
-    setIndex((i) => {
-      const ni = i + 1
-      return ni >= filtered.length ? 0 : ni
-    })
+    setIndex((i) => (i + 1 >= filtered.length ? 0 : i + 1))
   }, [filtered.length])
 
-  // 切换行时重置 index
   const handleRowChange = useCallback((row: RowKey | null) => {
     setSelectedRow(row)
     setIndex(0)
   }, [])
 
-  // 发音
   const speak = useCallback((text: string) => {
     const utterance = new SpeechSynthesisUtterance(text)
     utterance.lang = 'ja-JP'
@@ -49,12 +45,10 @@ export default function CardLearningPage() {
     speechSynthesis.speak(utterance)
   }, [])
 
-  // 当前在筛选列表中的位置显示
   const position = filtered.length > 0 ? `${safeIndex + 1} / ${filtered.length}` : '0 / 0'
 
   return (
     <div className="h-full bg-white flex flex-col">
-      {/* 顶部导航 */}
       <header className="pt-6 pb-2 px-5 flex items-center justify-between">
         <button
           onClick={() => navigate('/')}
@@ -65,7 +59,6 @@ export default function CardLearningPage() {
         <span className="text-xs text-gray-300">{position}</span>
       </header>
 
-      {/* 行筛选器 */}
       <nav className="px-5 py-2 overflow-x-auto scrollbar-hide">
         <div className="flex gap-2 min-w-max">
           <FilterChip
@@ -86,14 +79,12 @@ export default function CardLearningPage() {
         </div>
       </nav>
 
-      {/* 卡片区域 */}
       <main className="flex-1 flex items-center justify-center px-5 py-4">
         {current && (
           <KanaCard kana={current} onSpeak={speak} />
         )}
       </main>
 
-      {/* 底部导航按钮 */}
       <footer className="pb-8 px-5 flex justify-between items-center gap-4">
         <button
           onClick={goPrev}
@@ -114,7 +105,6 @@ export default function CardLearningPage() {
   )
 }
 
-// 筛选小标签
 function FilterChip({
   active,
   onClick,

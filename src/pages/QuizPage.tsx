@@ -1,14 +1,32 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuiz } from '../hooks/useQuiz'
+import { kanaData } from '../data/kanaData'
+import { getLearnedRomaji, saveWrongKana, saveQuizResult, getQuizStats } from '../db/db'
 
 export default function QuizPage() {
   const navigate = useNavigate()
-  const { question, score, rate, feedback, submitAnswer, nextQuestion } = useQuiz()
+  const [learnedRomaji, setLearnedRomaji] = useState<string[] | null>(null)
+  const [persistedStats, setPersistedStats] = useState<{ correct: number; total: number } | null>(null)
+
+  // 加载已学假名和历史统计
+  useEffect(() => {
+    getLearnedRomaji().then(setLearnedRomaji)
+    getQuizStats().then(setPersistedStats)
+  }, [])
+
+  // 题库：已学假名非空则从中抽选，否则全量
+  const pool = useMemo(() => {
+    if (!learnedRomaji || learnedRomaji.length === 0) return kanaData
+    const set = new Set(learnedRomaji)
+    const filtered = kanaData.filter((k) => set.has(k.romaji))
+    return filtered.length > 0 ? filtered : kanaData
+  }, [learnedRomaji])
+
+  const { question, score, rate, feedback, submitAnswer, nextQuestion } = useQuiz(pool)
   const [input, setInput] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // 自动聚焦输入框
   useEffect(() => {
     inputRef.current?.focus()
   }, [question])
@@ -19,7 +37,12 @@ export default function QuizPage() {
 
   const handleSubmit = useCallback(() => {
     if (!input.trim()) return
-    submitAnswer(input)
+    const result = submitAnswer(input)
+    // 持久化：错题 + 统计
+    if (!result.correct) {
+      saveWrongKana(result.expected)
+    }
+    saveQuizResult(result.correct)
   }, [input, submitAnswer])
 
   const handleNext = useCallback(() => {
@@ -27,7 +50,6 @@ export default function QuizPage() {
     nextQuestion()
   }, [nextQuestion])
 
-  // 回车提交
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === 'Enter') {
@@ -41,7 +63,6 @@ export default function QuizPage() {
     [feedback, handleSubmit, handleNext],
   )
 
-  // 发音
   const speak = useCallback((text: string) => {
     const utterance = new SpeechSynthesisUtterance(text)
     utterance.lang = 'ja-JP'
@@ -52,7 +73,6 @@ export default function QuizPage() {
 
   return (
     <div className="h-full bg-white flex flex-col">
-      {/* 顶部 */}
       <header className="pt-6 pb-2 px-5 flex items-center justify-between">
         <button
           onClick={() => navigate('/')}
@@ -60,27 +80,30 @@ export default function QuizPage() {
         >
           ← 首页
         </button>
-        <span className="text-xs text-gray-400">
-          {score.total > 0 && `${score.correct}/${score.total}`}
-          {rate !== null && (
-            <span className="ml-1 text-gray-500 font-medium">{rate}%</span>
+        <div className="text-xs text-gray-400 text-right">
+          <div>
+            {score.total > 0 && `本轮 ${score.correct}/${score.total}`}
+            {rate !== null && (
+              <span className="ml-1 text-gray-500 font-medium">{rate}%</span>
+            )}
+          </div>
+          {persistedStats && persistedStats.total > 0 && (
+            <div className="text-gray-300">
+              累计 {persistedStats.correct}/{persistedStats.total}
+            </div>
           )}
-        </span>
+        </div>
       </header>
 
-      {/* 题目区 */}
       <main className="flex-1 flex flex-col items-center justify-center px-5 gap-8">
-        {/* 假名大字 */}
         <span className="text-9xl font-light text-gray-900 select-none leading-none">
           {displayedChar}
         </span>
 
-        {/* 片假名/平假名提示 */}
         <span className="text-xs text-gray-300">
           {question.script === 'hiragana' ? '平假名' : '片假名'}
         </span>
 
-        {/* 输入区 */}
         <div className="w-full max-w-sm flex gap-3">
           <input
             ref={inputRef}
@@ -104,7 +127,6 @@ export default function QuizPage() {
           />
         </div>
 
-        {/* 按钮 */}
         {!feedback ? (
           <button
             onClick={handleSubmit}
@@ -117,7 +139,6 @@ export default function QuizPage() {
           </button>
         ) : (
           <div className="w-full max-w-sm flex flex-col items-center gap-4">
-            {/* 反馈 */}
             <div className={`text-center px-5 py-3 rounded-xl w-full
               ${feedback.correct ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
               <p className="text-lg font-bold">
@@ -150,7 +171,6 @@ export default function QuizPage() {
         )}
       </main>
 
-      {/* 底部占位 */}
       <footer className="pb-6" />
     </div>
   )

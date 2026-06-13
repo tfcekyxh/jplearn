@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { wordData } from '../data/wordData'
+import { saveWrongWord } from '../db/db'
 import WordCard from '../components/WordCard'
 
 export default function WordReadingPage() {
@@ -19,6 +20,7 @@ export default function WordReadingPage() {
         setKnownCount((c) => c + 1)
       } else {
         setUnknownCount((c) => c + 1)
+        saveWrongWord(current.kana)
       }
 
       if (index + 1 < total) {
@@ -27,7 +29,7 @@ export default function WordReadingPage() {
         setDone(true)
       }
     },
-    [index, total],
+    [index, total, current],
   )
 
   const restart = useCallback(() => {
@@ -45,7 +47,6 @@ export default function WordReadingPage() {
     speechSynthesis.speak(utterance)
   }, [])
 
-  // 完成页
   if (done) {
     return (
       <div className="h-full bg-white flex flex-col items-center justify-center px-5 gap-6">
@@ -83,7 +84,6 @@ export default function WordReadingPage() {
 
   return (
     <div className="h-full bg-white flex flex-col">
-      {/* 顶部 */}
       <header className="pt-6 pb-2 px-5 flex items-center justify-between">
         <button
           onClick={() => navigate('/')}
@@ -96,12 +96,10 @@ export default function WordReadingPage() {
         </span>
       </header>
 
-      {/* 单词卡片 */}
       <main className="flex-1 flex items-center justify-center px-5 py-4">
         <WordCard word={current} onSpeak={speak} />
       </main>
 
-      {/* 标记按钮 */}
       <footer className="pb-8 px-5 flex gap-4">
         <button
           onClick={() => mark(false)}

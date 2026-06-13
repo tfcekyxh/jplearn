@@ -1,6 +1,6 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import type { Kana } from '../data/kanaData'
-import { kanaData } from '../data/kanaData'
+import { kanaData as allKana } from '../data/kanaData'
 
 type Script = 'hiragana' | 'katakana'
 
@@ -23,17 +23,23 @@ function randomItem<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)]
 }
 
-function generateQuestion(): Question {
-  return {
-    kana: randomItem(kanaData),
-    script: Math.random() < 0.5 ? 'hiragana' : 'katakana',
-  }
-}
+export function useQuiz(pool: Kana[] = allKana) {
+  const generateQuestion = useCallback((): Question => {
+    return {
+      kana: randomItem(pool),
+      script: Math.random() < 0.5 ? 'hiragana' : 'katakana',
+    }
+  }, [pool])
 
-export function useQuiz() {
   const [question, setQuestion] = useState<Question>(generateQuestion)
   const [score, setScore] = useState<Score>({ correct: 0, total: 0 })
   const [feedback, setFeedback] = useState<Feedback | null>(null)
+
+  // pool 变化（学到新假名）时重新出题并重置分数
+  useEffect(() => {
+    setQuestion(generateQuestion())
+    setScore({ correct: 0, total: 0 })
+  }, [pool])
 
   const submitAnswer = useCallback(
     (answer: string) => {
@@ -45,6 +51,7 @@ export function useQuiz() {
         correct: s.correct + (correct ? 1 : 0),
         total: s.total + 1,
       }))
+      return { correct, expected }
     },
     [question],
   )
@@ -52,7 +59,7 @@ export function useQuiz() {
   const nextQuestion = useCallback(() => {
     setQuestion(generateQuestion())
     setFeedback(null)
-  }, [])
+  }, [generateQuestion])
 
   const rate = useMemo(() => {
     if (score.total === 0) return null
