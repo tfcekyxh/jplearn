@@ -1,10 +1,14 @@
-import { useCallback } from 'react'
+import { useRef, useCallback } from 'react'
 
 export function useAudio() {
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+
   const play = useCallback((url: string) => {
+    audioRef.current?.pause()
     const audio = new Audio(url)
-    audio.play().catch(() => {
-      // 用户未交互或文件不存在时静默失败
+    audioRef.current = audio
+    audio.play().catch((e) => {
+      console.warn('Audio play failed:', e.message)
     })
   }, [])
 

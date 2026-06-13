@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import type { Kana } from '../data/kanaData'
 
 interface Props {
@@ -5,9 +6,15 @@ interface Props {
   onSpeak: (url: string) => void
   isLoading?: boolean
   onRegenerate?: (romaji: string, hiragana: string, katakana: string) => void
+  autoSpeak?: boolean
 }
 
-export default function KanaCard({ kana, onSpeak, isLoading, onRegenerate }: Props) {
+export default function KanaCard({ kana, onSpeak, isLoading, onRegenerate, autoSpeak }: Props) {
+  useEffect(() => {
+    if (autoSpeak) {
+      onSpeak(`/audio/${kana.romaji}.mp3`)
+    }
+  }, [])
   return (
     <div className="w-full max-w-sm bg-white rounded-3xl shadow-lg px-8 py-12
                     flex flex-col items-center gap-5 animate-card-in">

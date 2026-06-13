@@ -113,6 +113,7 @@ export default function CardLearningPage() {
             kana={enhancedCurrent}
             onSpeak={playAudio}
             isLoading={isGenerating}
+            autoSpeak
             onRegenerate={regenerateOne}
           />
         )}
