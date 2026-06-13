@@ -1,5 +1,5 @@
 const DB_NAME = 'jplearn'
-const DB_VERSION = 1
+const DB_VERSION = 2
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -19,6 +19,9 @@ function openDB(): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains('quiz_stats')) {
         db.createObjectStore('quiz_stats', { keyPath: 'id', autoIncrement: true })
+      }
+      if (!db.objectStoreNames.contains('mnemonics')) {
+        db.createObjectStore('mnemonics', { keyPath: 'romaji' })
       }
     }
 
@@ -120,6 +123,34 @@ export async function getQuizStats(): Promise<{ correct: number; total: number }
       const results = request.result as { correct: boolean }[]
       const correct = results.filter((r) => r.correct).length
       resolve({ correct, total: results.length })
+    }
+    request.onerror = () => reject(request.error)
+  })
+}
+
+// === 速记口诀 ===
+
+export async function saveMnemonic(romaji: string, mnemonic: string): Promise<void> {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('mnemonics', 'readwrite')
+    tx.objectStore('mnemonics').put({ romaji, mnemonic })
+    tx.oncomplete = () => resolve()
+    tx.onerror = () => reject(tx.error)
+  })
+}
+
+export async function getAllMnemonics(): Promise<Record<string, string>> {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('mnemonics', 'readonly')
+    const request = tx.objectStore('mnemonics').getAll()
+    request.onsuccess = () => {
+      const result: Record<string, string> = {}
+      for (const row of request.result as { romaji: string; mnemonic: string }[]) {
+        result[row.romaji] = row.mnemonic
+      }
+      resolve(result)
     }
     request.onerror = () => reject(request.error)
   })

@@ -3,9 +3,11 @@ import type { Kana } from '../data/kanaData'
 interface Props {
   kana: Kana
   onSpeak: (text: string) => void
+  isLoading?: boolean
+  onRegenerate?: (romaji: string, hiragana: string, katakana: string) => void
 }
 
-export default function KanaCard({ kana, onSpeak }: Props) {
+export default function KanaCard({ kana, onSpeak, isLoading, onRegenerate }: Props) {
   return (
     <div className="w-full max-w-sm bg-white rounded-3xl shadow-lg px-8 py-12
                     flex flex-col items-center gap-5 animate-card-in">
@@ -25,10 +27,27 @@ export default function KanaCard({ kana, onSpeak }: Props) {
       </span>
 
       {/* 速记口诀 */}
-      {kana.mnemonic ? (
-        <p className="text-sm text-gray-400 text-center leading-relaxed mt-1">
-          {kana.mnemonic}
-        </p>
+      {isLoading ? (
+        <div className="flex items-center gap-2 mt-1 text-sm text-blue-400">
+          <span className="inline-block w-4 h-4 border-2 border-blue-300 border-t-blue-500
+                          rounded-full animate-spin" />
+          生成中...
+        </div>
+      ) : kana.mnemonic ? (
+        <div className="flex flex-col items-center gap-1 mt-1">
+          <p className="text-sm text-gray-500 text-center leading-relaxed">
+            {kana.mnemonic}
+          </p>
+          {onRegenerate && (
+            <button
+              onClick={() => onRegenerate(kana.romaji, kana.hiragana, kana.katakana)}
+              className="text-xs text-blue-400 underline underline-offset-2
+                         active:text-blue-600 transition-colors"
+            >
+              重新生成
+            </button>
+          )}
+        </div>
       ) : (
         <p className="text-sm text-gray-200 text-center italic mt-1">
           口诀待生成
