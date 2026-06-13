@@ -33,26 +33,28 @@ export default function HomePage() {
 
   return (
     <div className="h-full bg-white flex flex-col">
-      <header className="pt-12 pb-6 text-center">
+      <header className="pt-14 pb-8 text-center px-5">
         <h1 className="text-3xl font-bold tracking-wide text-gray-900">
           五十音速成
         </h1>
-        <p className="mt-2 text-sm text-gray-400">
+        <p className="mt-3 text-sm text-gray-400">
           从零开始，轻松掌握日语假名
         </p>
       </header>
 
       <main className="flex-1 flex flex-col items-center gap-4 px-5 pb-8">
-        {entries.map(({ path, title, desc, icon }) => (
+        {entries.map(({ path, title, desc, icon }, i) => (
           <button
             key={path}
             onClick={() => navigate(path)}
+            style={{ animationDelay: `${i * 80}ms` }}
             className="w-full max-w-sm bg-gray-50 rounded-2xl p-5 text-left
-                       shadow-sm active:scale-[0.98] transition-transform
-                       flex items-center gap-4"
+                       shadow-sm active:scale-[0.98] transition-all duration-150
+                       flex items-center gap-4 animate-card-in
+                       hover:shadow-md hover:bg-gray-100/80"
           >
-            <span className="w-12 h-12 rounded-xl bg-white flex items-center justify-center
-                             text-xl shadow-sm border border-gray-100 shrink-0">
+            <span className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center
+                             text-2xl shadow-sm border border-gray-100 shrink-0">
               {icon}
             </span>
             <div>
@@ -63,7 +65,7 @@ export default function HomePage() {
         ))}
       </main>
 
-      <footer className="text-center py-4 text-xs text-gray-300">
+      <footer className="text-center py-5 text-xs text-gray-300">
         离线可用 · 数据不上传
       </footer>
     </div>

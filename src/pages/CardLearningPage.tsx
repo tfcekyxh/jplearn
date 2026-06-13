@@ -17,7 +17,6 @@ export default function CardLearningPage() {
   const safeIndex = Math.min(index, Math.max(0, filtered.length - 1))
   const current = filtered[safeIndex]
 
-  // 当前假名自动标记为「已学」
   useEffect(() => {
     if (current) {
       markKanaLearned(current.romaji)
@@ -52,7 +51,7 @@ export default function CardLearningPage() {
       <header className="pt-6 pb-2 px-5 flex items-center justify-between">
         <button
           onClick={() => navigate('/')}
-          className="text-sm text-blue-500"
+          className="text-sm text-blue-500 py-2"
         >
           ← 首页
         </button>
@@ -60,7 +59,7 @@ export default function CardLearningPage() {
       </header>
 
       <nav className="px-5 py-2 overflow-x-auto scrollbar-hide">
-        <div className="flex gap-2 min-w-max">
+        <div className="flex gap-2 min-w-max pb-1">
           <FilterChip
             active={selectedRow === null}
             onClick={() => handleRowChange(null)}
@@ -81,22 +80,24 @@ export default function CardLearningPage() {
 
       <main className="flex-1 flex items-center justify-center px-5 py-4">
         {current && (
-          <KanaCard kana={current} onSpeak={speak} />
+          <KanaCard key={current.romaji} kana={current} onSpeak={speak} />
         )}
       </main>
 
-      <footer className="pb-8 px-5 flex justify-between items-center gap-4">
+      <footer className="pb-8 px-5 flex gap-4">
         <button
           onClick={goPrev}
-          className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700
-                     font-medium text-base active:bg-gray-200 transition-colors"
+          className="flex-1 py-4 rounded-xl bg-gray-100 text-gray-700
+                     font-medium text-base active:bg-gray-200
+                     transition-colors min-h-[48px]"
         >
           上一张
         </button>
         <button
           onClick={goNext}
-          className="flex-1 py-3 rounded-xl bg-blue-500 text-white
-                     font-medium text-base active:bg-blue-600 transition-colors"
+          className="flex-1 py-4 rounded-xl bg-blue-500 text-white
+                     font-medium text-base active:bg-blue-600
+                     transition-colors min-h-[48px]"
         >
           下一张
         </button>
@@ -117,9 +118,9 @@ function FilterChip({
   return (
     <button
       onClick={onClick}
-      className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors
+      className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all
         ${active
-          ? 'bg-blue-500 text-white'
+          ? 'bg-blue-500 text-white shadow-sm'
           : 'bg-gray-100 text-gray-500 active:bg-gray-200'
         }`}
     >

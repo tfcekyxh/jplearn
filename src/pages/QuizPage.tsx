@@ -9,13 +9,11 @@ export default function QuizPage() {
   const [learnedRomaji, setLearnedRomaji] = useState<string[] | null>(null)
   const [persistedStats, setPersistedStats] = useState<{ correct: number; total: number } | null>(null)
 
-  // 加载已学假名和历史统计
   useEffect(() => {
     getLearnedRomaji().then(setLearnedRomaji)
     getQuizStats().then(setPersistedStats)
   }, [])
 
-  // 题库：已学假名非空则从中抽选，否则全量
   const pool = useMemo(() => {
     if (!learnedRomaji || learnedRomaji.length === 0) return kanaData
     const set = new Set(learnedRomaji)
@@ -38,7 +36,6 @@ export default function QuizPage() {
   const handleSubmit = useCallback(() => {
     if (!input.trim()) return
     const result = submitAnswer(input)
-    // 持久化：错题 + 统计
     if (!result.correct) {
       saveWrongKana(result.expected)
     }
@@ -76,7 +73,7 @@ export default function QuizPage() {
       <header className="pt-6 pb-2 px-5 flex items-center justify-between">
         <button
           onClick={() => navigate('/')}
-          className="text-sm text-blue-500"
+          className="text-sm text-blue-500 py-2"
         >
           ← 首页
         </button>
@@ -96,7 +93,11 @@ export default function QuizPage() {
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-center px-5 gap-8">
-        <span className="text-9xl font-light text-gray-900 select-none leading-none">
+        {/* 假名大字 — 切换时带动画 */}
+        <span
+          key={displayedChar + question.script}
+          className="text-9xl font-light text-gray-900 select-none leading-none animate-card-in"
+        >
           {displayedChar}
         </span>
 
@@ -104,7 +105,7 @@ export default function QuizPage() {
           {question.script === 'hiragana' ? '平假名' : '片假名'}
         </span>
 
-        <div className="w-full max-w-sm flex gap-3">
+        <div className="w-full max-w-sm">
           <input
             ref={inputRef}
             type="text"
@@ -116,13 +117,13 @@ export default function QuizPage() {
             autoComplete="off"
             autoCapitalize="off"
             spellCheck={false}
-            className={`flex-1 px-4 py-3 rounded-xl border text-center text-lg
-                       outline-none transition-colors
+            className={`w-full px-4 py-4 rounded-xl border text-center text-lg
+                       outline-none transition-all duration-200
                        ${feedback
                          ? feedback.correct
                            ? 'border-green-300 bg-green-50 text-green-700'
                            : 'border-red-300 bg-red-50 text-red-700'
-                         : 'border-gray-200 bg-gray-50 text-gray-900 focus:border-blue-300'
+                         : 'border-gray-200 bg-gray-50 text-gray-900 focus:border-blue-400 focus:ring-2 focus:ring-blue-100'
                        }`}
           />
         </div>
@@ -131,15 +132,15 @@ export default function QuizPage() {
           <button
             onClick={handleSubmit}
             disabled={!input.trim()}
-            className="w-full max-w-sm py-3 rounded-xl bg-blue-500 text-white
+            className="w-full max-w-sm py-4 rounded-xl bg-blue-500 text-white
                        font-medium text-base disabled:opacity-30
-                       active:bg-blue-600 transition-colors"
+                       active:bg-blue-600 transition-colors min-h-[48px]"
           >
             确认
           </button>
         ) : (
-          <div className="w-full max-w-sm flex flex-col items-center gap-4">
-            <div className={`text-center px-5 py-3 rounded-xl w-full
+          <div className="w-full max-w-sm flex flex-col items-center gap-4 animate-feedback-in">
+            <div className={`text-center px-5 py-4 rounded-xl w-full
               ${feedback.correct ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
               <p className="text-lg font-bold">
                 {feedback.correct ? '✓ 正确' : '✗ 错误'}
@@ -154,15 +155,17 @@ export default function QuizPage() {
             <div className="flex gap-3 w-full">
               <button
                 onClick={() => speak(question.kana.hiragana)}
-                className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700
-                           font-medium text-base active:bg-gray-200 transition-colors"
+                className="flex-1 py-4 rounded-xl bg-gray-100 text-gray-700
+                           font-medium text-base active:bg-gray-200
+                           transition-colors min-h-[48px]"
               >
                 🔊 听发音
               </button>
               <button
                 onClick={handleNext}
-                className="flex-1 py-3 rounded-xl bg-blue-500 text-white
-                           font-medium text-base active:bg-blue-600 transition-colors"
+                className="flex-1 py-4 rounded-xl bg-blue-500 text-white
+                           font-medium text-base active:bg-blue-600
+                           transition-colors min-h-[48px]"
               >
                 下一题
               </button>

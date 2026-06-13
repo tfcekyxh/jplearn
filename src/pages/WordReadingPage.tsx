@@ -49,8 +49,8 @@ export default function WordReadingPage() {
 
   if (done) {
     return (
-      <div className="h-full bg-white flex flex-col items-center justify-center px-5 gap-6">
-        <p className="text-2xl font-bold text-gray-900">本轮完成 🎉</p>
+      <div className="h-full bg-white flex flex-col items-center justify-center px-5 gap-6 animate-fade-in">
+        <p className="text-2xl font-bold text-gray-900">本轮完成</p>
         <div className="text-center text-gray-500 space-y-1">
           <p>
             我会了：<span className="text-green-500 font-semibold">{knownCount}</span>
@@ -65,15 +65,15 @@ export default function WordReadingPage() {
         <div className="flex gap-3 mt-4">
           <button
             onClick={restart}
-            className="px-6 py-3 rounded-xl bg-blue-500 text-white
-                       font-medium active:bg-blue-600 transition-colors"
+            className="px-6 py-4 rounded-xl bg-blue-500 text-white
+                       font-medium active:bg-blue-600 transition-colors min-h-[48px]"
           >
             再来一轮
           </button>
           <button
             onClick={() => navigate('/')}
-            className="px-6 py-3 rounded-xl bg-gray-100 text-gray-600
-                       font-medium active:bg-gray-200 transition-colors"
+            className="px-6 py-4 rounded-xl bg-gray-100 text-gray-600
+                       font-medium active:bg-gray-200 transition-colors min-h-[48px]"
           >
             返回首页
           </button>
@@ -87,7 +87,7 @@ export default function WordReadingPage() {
       <header className="pt-6 pb-2 px-5 flex items-center justify-between">
         <button
           onClick={() => navigate('/')}
-          className="text-sm text-blue-500"
+          className="text-sm text-blue-500 py-2"
         >
           ← 首页
         </button>
@@ -97,21 +97,23 @@ export default function WordReadingPage() {
       </header>
 
       <main className="flex-1 flex items-center justify-center px-5 py-4">
-        <WordCard word={current} onSpeak={speak} />
+        <WordCard key={current.kana} word={current} onSpeak={speak} />
       </main>
 
       <footer className="pb-8 px-5 flex gap-4">
         <button
           onClick={() => mark(false)}
-          className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700
-                     font-medium text-base active:bg-gray-200 transition-colors"
+          className="flex-1 py-4 rounded-xl bg-gray-100 text-gray-700
+                     font-medium text-base active:bg-gray-200
+                     transition-colors min-h-[48px]"
         >
           不会
         </button>
         <button
           onClick={() => mark(true)}
-          className="flex-1 py-3 rounded-xl bg-blue-500 text-white
-                     font-medium text-base active:bg-blue-600 transition-colors"
+          className="flex-1 py-4 rounded-xl bg-blue-500 text-white
+                     font-medium text-base active:bg-blue-600
+                     transition-colors min-h-[48px]"
         >
           我会了
         </button>

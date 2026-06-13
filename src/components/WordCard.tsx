@@ -7,16 +7,16 @@ interface Props {
 
 export default function WordCard({ word, onSpeak }: Props) {
   return (
-    <div className="w-full max-w-sm bg-white rounded-3xl shadow-lg px-8 py-10
-                    flex flex-col items-center gap-4">
+    <div className="w-full max-w-sm bg-white rounded-3xl shadow-lg px-8 py-12
+                    flex flex-col items-center gap-5 animate-card-in">
       {/* 单词假名大字 */}
-      <span className="text-5xl font-light text-gray-900 leading-none select-none tracking-wider">
+      <span className="text-[3.5rem] font-light text-gray-900 leading-none select-none tracking-wider">
         {word.kana}
       </span>
 
-      {/* 汉字（如有） */}
+      {/* 汉字 */}
       {word.kanji && (
-        <span className="text-xl text-gray-400 select-none">
+        <span className="text-2xl text-gray-400 select-none">
           {word.kanji}
         </span>
       )}
@@ -29,9 +29,9 @@ export default function WordCard({ word, onSpeak }: Props) {
       {/* 发音按钮 */}
       <button
         onClick={() => onSpeak(word.kana)}
-        className="mt-2 w-12 h-12 rounded-full bg-blue-50 text-blue-500
-                   flex items-center justify-center text-lg
-                   active:bg-blue-100 transition-colors"
+        className="mt-3 w-14 h-14 rounded-full bg-blue-50 text-blue-500
+                   flex items-center justify-center text-xl
+                   active:bg-blue-100 active:scale-95 transition-all"
         aria-label={`播放 ${word.kana} 的发音`}
       >
         🔊
