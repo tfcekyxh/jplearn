@@ -12,7 +12,7 @@ interface Props {
 export default function KanaCard({ kana, onSpeak, isLoading, onRegenerate, autoSpeak }: Props) {
   useEffect(() => {
     if (autoSpeak) {
-      onSpeak(`/audio/${kana.romaji}.mp3`)
+      onSpeak(`${import.meta.env.BASE_URL}audio/${kana.romaji}.mp3`)
     }
   }, [])
   return (
@@ -63,7 +63,7 @@ export default function KanaCard({ kana, onSpeak, isLoading, onRegenerate, autoS
 
       {/* 发音按钮 */}
       <button
-        onClick={() => onSpeak(`/audio/${kana.romaji}.mp3`)}
+        onClick={() => onSpeak(`${import.meta.env.BASE_URL}audio/${kana.romaji}.mp3`)}
         className="mt-3 w-14 h-14 rounded-full bg-blue-50 text-blue-500
                    flex items-center justify-center text-xl
                    active:bg-blue-100 active:scale-95 transition-all"

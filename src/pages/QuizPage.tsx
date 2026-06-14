@@ -149,7 +149,7 @@ export default function QuizPage() {
 
             <div className="flex gap-3 w-full">
               <button
-                onClick={() => playAudio(`/audio/${question.kana.romaji}.mp3`)}
+                onClick={() => playAudio(`${import.meta.env.BASE_URL}audio/${question.kana.romaji}.mp3`)}
                 className="flex-1 py-4 rounded-xl bg-gray-100 text-gray-700
                            font-medium text-base active:bg-gray-200
                            transition-colors min-h-[48px]"

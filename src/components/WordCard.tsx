@@ -28,7 +28,7 @@ export default function WordCard({ word, onSpeak }: Props) {
 
       {/* 发音按钮 */}
       <button
-        onClick={() => onSpeak(`/audio/w_${word.id}.mp3`)}
+        onClick={() => onSpeak(`${import.meta.env.BASE_URL}audio/w_${word.id}.mp3`)}
         className="mt-3 w-14 h-14 rounded-full bg-blue-50 text-blue-500
                    flex items-center justify-center text-xl
                    active:bg-blue-100 active:scale-95 transition-all"
