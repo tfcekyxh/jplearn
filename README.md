@@ -1,16 +1,27 @@
-# React + Vite
+# 五十音学习
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+五十音学习工具地址：https://tfcekyxh.github.io/jplearn
 
-Currently, two official plugins are available:
+可以提醒我还有哪些功能，issue之类的，欢迎使用。
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 项目简介
 
-## React Compiler
+五十音速成 —— 移动端优先的日语五十音学习工具，纯前端实现，无需后端服务。涵盖假名卡片、单词认读、在线测验三大功能，助你快速掌握日语五十音。
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 主要功能
 
-## Expanding the ESLint configuration
+- **假名卡片**：46 个平/片假名卡片，点击播放发音，支持 AI 生成速记口诀
+- **单词认读**：28 个基础单词卡片，支持假名/罗马音/中文释义展示
+- **在线测验**：根据已学假名随机出题，记录答题统计与错题本
+- **离线可用**：学习进度与错题等数据存储在浏览器本地（IndexedDB）
+- **移动端优先**：专为手机浏览器设计，点击友好
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## 技术栈
+
+- **构建**：Vite + Bun
+- **框架**：React 19 + TypeScript
+- **样式**：Tailwind CSS v4
+- **路由**：React Router v7
+- **语音**：预置 mp3 音频（Edge TTS 生成）
+- **持久化**：IndexedDB
+- **AI 口诀**：智谱 GLM-4-Flash（Vercel AI SDK）
