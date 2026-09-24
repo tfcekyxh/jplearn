@@ -137,14 +137,16 @@ export default function QuizPage() {
 
       <main
         className={`flex-1 min-h-0 flex flex-col items-center justify-center px-5
-                    transition-[gap] duration-200 ${isTouch && feedback ? 'gap-3' : 'gap-6'}`}
+                    transition-[gap] duration-150 ease-out
+                    ${isTouch && feedback ? 'gap-3' : 'gap-6'}`}
       >
         {/* 假名大字 — 自绘键盘是页面布局的一部分，永不弹系统键盘；
-            仅在触屏端出现反馈块（错误提示+听发音）时缩小，为两个块和键盘让出间距 */}
+            仅在触屏端出现反馈块（错误提示+听发音）时缩小，为两个块和键盘让出间距。
+            150ms ease-out：快起步利落收尾，避免长时长带来的钝感 */}
         <span
           key={displayedChar + question.script}
           className={`font-light text-gray-900 select-none leading-none animate-card-in
-                      transition-[font-size] duration-200
+                      transition-[font-size] duration-150 ease-out
                       ${isTouch && feedback ? 'text-7xl' : 'text-9xl'}`}
         >
           {displayedChar}
