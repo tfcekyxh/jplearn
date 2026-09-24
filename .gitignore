@@ -16,6 +16,11 @@ dist-ssr
 .playwright-mcp/
 .trae/
 
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
