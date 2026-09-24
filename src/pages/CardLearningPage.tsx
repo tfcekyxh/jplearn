@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { kanaData, rows, rowLabels, type RowKey } from '../data/kanaData'
 import { markKanaLearned } from '../db/db'
@@ -10,6 +10,26 @@ export default function CardLearningPage() {
   const navigate = useNavigate()
   const [selectedRow, setSelectedRow] = useState<RowKey | null>(null)
   const [index, setIndex] = useState(0)
+  const rowNavRef = useRef<HTMLElement>(null)
+  // 标签横滑行两侧是否还有未露出的内容，用于控制边缘渐隐提示
+  const [rowNavEdge, setRowNavEdge] = useState({ left: false, right: true })
+
+  useEffect(() => {
+    const el = rowNavRef.current
+    if (!el) return
+    const update = () => {
+      const max = el.scrollWidth - el.clientWidth
+      setRowNavEdge({ left: el.scrollLeft > 4, right: el.scrollLeft < max - 4 })
+    }
+    update()
+    el.addEventListener('scroll', update, { passive: true })
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => {
+      el.removeEventListener('scroll', update)
+      ro.disconnect()
+    }
+  }, [])
 
   const { mnemonics, isGenerating, error, generateAll, regenerateOne, clearError } = useMnemonics()
 
@@ -86,25 +106,40 @@ export default function CardLearningPage() {
         <span className="text-xs text-gray-300 shrink-0">{position}</span>
       </header>
 
-      <nav className="px-5 py-2 overflow-x-auto scrollbar-hide">
-        <div className="flex gap-2 min-w-max pb-1">
-          <FilterChip
-            active={selectedRow === null}
-            onClick={() => handleRowChange(null)}
-          >
-            全部
-          </FilterChip>
-          {rows.map((row) => (
+      <div className="relative shrink-0">
+        {/* touch-pan-x：斜向滑动也优先识别为横滑，避免与垂直橡皮筋手势冲突；
+            overscroll-x-contain：滑到尽头不触发浏览器前进/后退手势。
+            左右 padding 放在滚动内容上，保证末端留白在任何 WebKit 下都能滚入 */}
+        <nav
+          ref={rowNavRef}
+          className="overflow-x-auto scrollbar-hide touch-pan-x overscroll-x-contain"
+        >
+          <div className="flex gap-2 min-w-max px-5 py-2.5">
             <FilterChip
-              key={row}
-              active={selectedRow === row}
-              onClick={() => handleRowChange(row)}
+              active={selectedRow === null}
+              onClick={() => handleRowChange(null)}
             >
-              {rowLabels[row]}
+              全部
             </FilterChip>
-          ))}
-        </div>
-      </nav>
+            {rows.map((row) => (
+              <FilterChip
+                key={row}
+                active={selectedRow === row}
+                onClick={() => handleRowChange(row)}
+              >
+                {rowLabels[row]}
+              </FilterChip>
+            ))}
+          </div>
+        </nav>
+        {/* 边缘渐隐：提示该方向还有标签可滑，到边自动消失；不拦截触摸 */}
+        {rowNavEdge.left && (
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-white to-transparent" />
+        )}
+        {rowNavEdge.right && (
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-white to-transparent" />
+        )}
+      </div>
 
       <main className="flex-1 flex items-center justify-center px-5 py-4">
         {enhancedCurrent && (
