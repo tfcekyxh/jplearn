@@ -33,8 +33,9 @@ export default function QuizPage() {
   // 监听视觉视口：手机软键盘弹出时 visualViewport.height 会明显变小
   // （iOS 上 layout viewport 高度不变，这是键盘弹起唯一可靠的信号）。
   // 用「历史最大高度 - 当前高度」判定，阈值 120px 可滤掉浏览器地址栏伸缩。
-  const [keyboardOpen, setKeyboardOpen] = useState(false)
-  const [visibleHeight, setVisibleHeight] = useState<number | null>(null)
+  // keyboardOpen 时保存视觉视口的 top/height，供 fixed 外壳精确贴合。
+  const [visibleRect, setVisibleRect] = useState<{ top: number; height: number } | null>(null)
+  const keyboardOpen = visibleRect !== null
 
   useEffect(() => {
     const vv = window.visualViewport
@@ -43,8 +44,7 @@ export default function QuizPage() {
     const update = () => {
       if (vv.height > maxHeight) maxHeight = vv.height
       const open = maxHeight - vv.height > 120
-      setKeyboardOpen(open)
-      setVisibleHeight(open ? vv.height : null)
+      setVisibleRect(open ? { top: vv.offsetTop, height: vv.height } : null)
     }
     update()
     vv.addEventListener('resize', update)
@@ -54,6 +54,27 @@ export default function QuizPage() {
       vv.removeEventListener('scroll', update)
     }
   }, [])
+
+  // 键盘弹起期间锁死文档滚动：iOS Safari / 微信 WKWebView 在输入框聚焦时
+  // 会强制滚动文档「把输入框滚进可视区」，与文档流容器的高度变化互相打架，
+  // 表现为整页瞬间滚到底部。fixed 外壳已不参与文档流，这里再锁 body 滚动
+  // 并把任何强制偏移归零作为兜底。
+  useEffect(() => {
+    if (!keyboardOpen) return
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const lockScroll = () => {
+      if (window.scrollY !== 0) window.scrollTo(0, 0)
+    }
+    lockScroll()
+    window.addEventListener('scroll', lockScroll, { passive: true })
+    window.visualViewport?.addEventListener('scroll', lockScroll)
+    return () => {
+      document.body.style.overflow = prevOverflow
+      window.removeEventListener('scroll', lockScroll)
+      window.visualViewport?.removeEventListener('scroll', lockScroll)
+    }
+  }, [keyboardOpen])
 
   const displayedChar = question.script === 'hiragana'
     ? question.kana.hiragana
@@ -98,8 +119,16 @@ export default function QuizPage() {
 
   return (
     <div
-      className="h-full bg-white flex flex-col overflow-hidden transition-[height] duration-200"
-      style={visibleHeight !== null ? { height: visibleHeight } : undefined}
+      // 外壳脱离文档流并精确覆盖「视觉视口」：键盘弹起时 top/height 跟随
+      // visualViewport，内容在键盘上方的区域内重新 flex 布局；
+      // 文档本身没有可滚动内容，iOS 聚焦时无法把整页滚走。
+      // 不加 top/height 的 CSS 过渡：贴合必须逐帧跟随键盘动画，过渡会产生滞后错位。
+      className="fixed left-0 right-0 bg-white flex flex-col overflow-hidden"
+      style={
+        visibleRect
+          ? { top: visibleRect.top, height: visibleRect.height, bottom: 'auto' }
+          : { top: 0, bottom: 0, height: 'auto' }
+      }
     >
       <header className="pt-6 pb-2 px-5 flex items-center justify-between">
         <button
@@ -124,15 +153,18 @@ export default function QuizPage() {
       </header>
 
       <main
-        className={`flex-1 flex flex-col items-center justify-center px-5 transition-[gap] duration-200
+        className={`flex-1 min-h-0 flex flex-col items-center justify-center px-5
+                    overflow-y-auto scrollbar-hide transition-[gap] duration-200
           ${keyboardOpen ? 'gap-4' : 'gap-8'}`}
       >
-        {/* 假名大字 — 键盘弹起时缩小，收回后还原；切换时带动画 */}
+        {/* 假名大字 — 键盘弹起时缩小，收回后还原；极低屏幕再降一档；切换时带动画 */}
         <span
           key={displayedChar + question.script}
           className={`font-light text-gray-900 select-none leading-none animate-card-in
                       transition-[font-size] duration-200
-                      ${keyboardOpen ? 'text-7xl' : 'text-9xl'}`}
+                      ${keyboardOpen
+                        ? visibleRect && visibleRect.height < 400 ? 'text-6xl' : 'text-7xl'
+                        : 'text-9xl'}`}
         >
           {displayedChar}
         </span>
