@@ -135,11 +135,17 @@ export default function QuizPage() {
         </div>
       </header>
 
-      <main className="flex-1 min-h-0 flex flex-col items-center justify-center px-5 gap-6">
-        {/* 假名大字 — 自绘键盘是页面布局的一部分，永不弹系统键盘，字号恒定无需缩放 */}
+      <main
+        className={`flex-1 min-h-0 flex flex-col items-center justify-center px-5
+                    transition-[gap] duration-200 ${isTouch && feedback ? 'gap-3' : 'gap-6'}`}
+      >
+        {/* 假名大字 — 自绘键盘是页面布局的一部分，永不弹系统键盘；
+            仅在触屏端出现反馈块（错误提示+听发音）时缩小，为两个块和键盘让出间距 */}
         <span
           key={displayedChar + question.script}
-          className="text-9xl font-light text-gray-900 select-none leading-none animate-card-in"
+          className={`font-light text-gray-900 select-none leading-none animate-card-in
+                      transition-[font-size] duration-200
+                      ${isTouch && feedback ? 'text-7xl' : 'text-9xl'}`}
         >
           {displayedChar}
         </span>
@@ -238,7 +244,7 @@ export default function QuizPage() {
         {/* 触屏端反馈：保持紧凑，键盘上的回车即「下一题」 */}
         {isTouch && feedback && (
           <div className="w-full max-w-sm animate-feedback-in">
-            <div className={`text-center px-5 py-3 rounded-xl
+            <div className={`text-center px-5 py-2.5 rounded-xl
               ${feedback.correct ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
               <p className="text-base font-bold">
                 {feedback.correct ? '✓ 正确' : '✗ 错误'}
@@ -251,7 +257,7 @@ export default function QuizPage() {
             </div>
             <button
               onClick={speak}
-              className="mt-2 w-full py-2.5 rounded-xl bg-gray-100 text-gray-600
+              className="mt-1.5 w-full py-2 rounded-xl bg-gray-100 text-gray-600
                          text-sm font-medium active:bg-gray-200 transition-colors"
             >
               🔊 听发音
