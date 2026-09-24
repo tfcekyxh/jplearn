@@ -4,6 +4,14 @@ on:
   push:
     branches: [master]
 
+# 连续推送时取消尚未完成的旧部署，避免多个部署并发
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -11,6 +19,7 @@ jobs:
       contents: read
       pages: write
       id-token: write
+      actions: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -28,8 +37,23 @@ jobs:
           VITE_GLM_API_KEY: ${{ secrets.VITE_GLM_API_KEY }}
 
       - uses: actions/configure-pages@v4
+
+      # 清理本 run 中可能已存在的同名 artifact（重跑 all jobs 时旧包不会自动删除，
+      # 会导致 deploy-pages 报 "Multiple artifacts named github-pages"）
+      - name: Delete stale github-pages artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts" \
+            --paginate -q '.artifacts[] | select(.name == "github-pages") | .id' \
+            | while read -r id; do
+                echo "Deleting stale artifact $id"
+                gh api -X DELETE "repos/${GITHUB_REPOSITORY}/actions/artifacts/${id}"
+              done
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
+
       - id: deployment
         uses: actions/deploy-pages@v4
