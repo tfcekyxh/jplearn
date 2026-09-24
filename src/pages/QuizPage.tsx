@@ -30,6 +30,31 @@ export default function QuizPage() {
     inputRef.current?.focus()
   }, [question])
 
+  // 监听视觉视口：手机软键盘弹出时 visualViewport.height 会明显变小
+  // （iOS 上 layout viewport 高度不变，这是键盘弹起唯一可靠的信号）。
+  // 用「历史最大高度 - 当前高度」判定，阈值 120px 可滤掉浏览器地址栏伸缩。
+  const [keyboardOpen, setKeyboardOpen] = useState(false)
+  const [visibleHeight, setVisibleHeight] = useState<number | null>(null)
+
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+    let maxHeight = vv.height
+    const update = () => {
+      if (vv.height > maxHeight) maxHeight = vv.height
+      const open = maxHeight - vv.height > 120
+      setKeyboardOpen(open)
+      setVisibleHeight(open ? vv.height : null)
+    }
+    update()
+    vv.addEventListener('resize', update)
+    vv.addEventListener('scroll', update)
+    return () => {
+      vv.removeEventListener('resize', update)
+      vv.removeEventListener('scroll', update)
+    }
+  }, [])
+
   const displayedChar = question.script === 'hiragana'
     ? question.kana.hiragana
     : question.kana.katakana
@@ -41,11 +66,19 @@ export default function QuizPage() {
       saveWrongKana(result.expected)
     }
     saveQuizResult(result.correct)
+    // 触屏设备提交后主动收起键盘，把屏幕让给正误反馈和操作按钮；
+    // 点击「下一题」时会在点击手势内重新 focus 唤起键盘
+    if (window.matchMedia?.('(pointer: coarse)').matches) {
+      inputRef.current?.blur()
+    }
   }, [input, submitAnswer])
 
   const handleNext = useCallback(() => {
     setInput('')
     nextQuestion()
+    // iOS Safari 仅在用户手势的同步调用栈内 focus 才会唤起软键盘，
+    // 输入框必须保持非 disabled/readonly，此处 focus 才能生效
+    inputRef.current?.focus()
   }, [nextQuestion])
 
   const handleKeyDown = useCallback(
@@ -64,7 +97,10 @@ export default function QuizPage() {
   const playAudio = useAudio()
 
   return (
-    <div className="h-full bg-white flex flex-col">
+    <div
+      className="h-full bg-white flex flex-col overflow-hidden transition-[height] duration-200"
+      style={visibleHeight !== null ? { height: visibleHeight } : undefined}
+    >
       <header className="pt-6 pb-2 px-5 flex items-center justify-between">
         <button
           onClick={() => navigate('/')}
@@ -87,11 +123,16 @@ export default function QuizPage() {
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-center px-5 gap-8">
-        {/* 假名大字 — 切换时带动画 */}
+      <main
+        className={`flex-1 flex flex-col items-center justify-center px-5 transition-[gap] duration-200
+          ${keyboardOpen ? 'gap-4' : 'gap-8'}`}
+      >
+        {/* 假名大字 — 键盘弹起时缩小，收回后还原；切换时带动画 */}
         <span
           key={displayedChar + question.script}
-          className="text-9xl font-light text-gray-900 select-none leading-none animate-card-in"
+          className={`font-light text-gray-900 select-none leading-none animate-card-in
+                      transition-[font-size] duration-200
+                      ${keyboardOpen ? 'text-7xl' : 'text-9xl'}`}
         >
           {displayedChar}
         </span>
@@ -105,15 +146,21 @@ export default function QuizPage() {
             ref={inputRef}
             type="text"
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => {
+              // 不使用 disabled：禁用状态无法 focus，会导致手机上无法唤起键盘
+              if (feedback) return
+              setInput(e.target.value)
+            }}
             onKeyDown={handleKeyDown}
-            disabled={!!feedback}
             placeholder="输入罗马音..."
+            autoFocus
             autoComplete="off"
             autoCapitalize="off"
+            autoCorrect="off"
             spellCheck={false}
             className={`w-full px-4 py-4 rounded-xl border text-center text-lg
                        outline-none transition-all duration-200
+                       ${feedback ? 'pointer-events-none ' : ''}
                        ${feedback
                          ? feedback.correct
                            ? 'border-green-300 bg-green-50 text-green-700'
@@ -169,7 +216,7 @@ export default function QuizPage() {
         )}
       </main>
 
-      <footer className="pb-6" />
+      <footer className={`transition-[padding] duration-200 ${keyboardOpen ? 'pb-2' : 'pb-6'}`} />
     </div>
   )
 }
