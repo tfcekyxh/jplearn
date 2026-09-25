@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuiz } from '../hooks/useQuiz'
 import { kanaData } from '../data/kanaData'
@@ -7,6 +7,40 @@ import { useAudio } from '../hooks/useAudio'
 
 // 罗马音最长 3 个字母（如 tsu/chi），留 1 个余量
 const MAX_ANSWER_LEN = 4
+
+// 反馈态假名视觉缩放：字号恒定 128px，仅用 GPU transform 缩放到 72px
+const KANA_SMALL_SCALE = 72 / 128
+const FLIP_MS = 150
+
+// offsetTop 沿 offsetParent 链求和；该指标只反映布局位置，不受 transform 影响
+function layoutTop(el: HTMLElement): number {
+  let y = 0
+  let node: HTMLElement | null = el
+  while (node && node !== document.body) {
+    y += node.offsetTop
+    node = node.offsetParent as HTMLElement | null
+  }
+  return y
+}
+
+// 纯 GPU 合成动画：从 from 变换过渡到 to，不触发任何重排
+function playTransform(el: HTMLElement, from: string, to: string, origin = 'center') {
+  el.style.willChange = 'transform'
+  el.style.transition = 'none'
+  el.style.transformOrigin = origin
+  el.style.transform = from
+  void el.offsetWidth // 强制应用起始帧
+  el.style.transition = `transform ${FLIP_MS}ms ease-out`
+  requestAnimationFrame(() => {
+    el.style.transform = to
+  })
+  window.setTimeout(() => {
+    el.style.willChange = ''
+    el.style.transition = ''
+    // 位移归零后移除 transform；缩放终态（反馈态假名）需保留
+    if (!to.includes('scale')) el.style.transform = ''
+  }, FLIP_MS + 40)
+}
 
 const KEY_ROWS = [
   ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
@@ -42,6 +76,15 @@ export default function QuizPage() {
   const { question, score, rate, feedback, submitAnswer, nextQuestion } = useQuiz(pool)
   const [input, setInput] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
+  const kanaRef = useRef<HTMLSpanElement>(null)
+  const lowerRef = useRef<HTMLDivElement>(null)
+  // 上一帧终态布局快照，用于 FLIP 反演（offsetTop/offsetHeight 不受 transform 影响）
+  const prevLayoutRef = useRef<{
+    key: string
+    hasFeedback: boolean
+    kanaCenterY: number
+    lowerTop: number
+  } | null>(null)
 
   useEffect(() => {
     if (!isTouch) inputRef.current?.focus()
@@ -50,6 +93,54 @@ export default function QuizPage() {
   const displayedChar = question.script === 'hiragana'
     ? question.kana.hiragana
     : question.kana.katakana
+
+  const questionKey = displayedChar + question.script
+
+  // FLIP 反演（声明在快照 effect 之前：先读旧快照，再写入新快照）。
+  // 布局已在本次提交瞬间到达终态（无过渡，零重排动画），这里用 transform
+  // 把元素「倒放」回旧位置/旧尺寸，再合成到终态——与图片缩放同一条 GPU 管线。
+  useLayoutEffect(() => {
+    if (!isTouch) return
+    const kana = kanaRef.current
+    const lower = lowerRef.current
+    if (!kana || !lower) return
+    const prev = prevLayoutRef.current
+    const kanaCY = layoutTop(kana) + kana.offsetHeight / 2
+    const lowerTopNow = layoutTop(lower)
+    if (prev) {
+      const dyLower = prev.lowerTop - lowerTopNow
+      if (Math.abs(dyLower) > 0.5) {
+        playTransform(lower, `translateY(${dyLower}px)`, 'translateY(0px)')
+      }
+      // 仅同一题（提交答案瞬间）做假名缩放；换题时假名已随 key 重挂载播入场动画
+      if (prev.key === questionKey) {
+        const dyKana = prev.kanaCenterY - kanaCY
+        const startScale = prev.hasFeedback ? KANA_SMALL_SCALE : 1
+        const endScale = feedback ? KANA_SMALL_SCALE : 1
+        if (Math.abs(dyKana) > 0.5 || startScale !== endScale) {
+          playTransform(
+            kana,
+            `translateY(${dyKana}px) scale(${startScale})`,
+            `translateY(0px) scale(${endScale})`,
+          )
+        }
+      }
+    }
+  }, [feedback, questionKey, isTouch])
+
+  // 记录本次提交后的终态布局，供下一次状态切换反演
+  useLayoutEffect(() => {
+    if (!isTouch) return
+    const kana = kanaRef.current
+    const lower = lowerRef.current
+    if (!kana || !lower) return
+    prevLayoutRef.current = {
+      key: questionKey,
+      hasFeedback: !!feedback,
+      kanaCenterY: layoutTop(kana) + kana.offsetHeight / 2,
+      lowerTop: layoutTop(lower),
+    }
+  })
 
   const handleSubmit = useCallback(() => {
     if (!input.trim()) return
@@ -135,137 +226,139 @@ export default function QuizPage() {
         </div>
       </header>
 
-      <main
-        className={`flex-1 min-h-0 flex flex-col items-center justify-center px-5
-                    transition-[gap] duration-150 ease-out
-                    ${isTouch && feedback ? 'gap-3' : 'gap-6'}`}
-      >
-        {/* 假名大字 — 自绘键盘是页面布局的一部分，永不弹系统键盘；
-            仅在触屏端出现反馈块（错误提示+听发音）时缩小，为两个块和键盘让出间距。
-            150ms ease-out：快起步利落收尾，避免长时长带来的钝感 */}
-        <span
-          key={displayedChar + question.script}
-          className={`font-light text-gray-900 select-none leading-none animate-card-in
-                      transition-[font-size] duration-150 ease-out
-                      ${isTouch && feedback ? 'text-7xl' : 'text-9xl'}`}
+      <main className="flex-1 min-h-0 flex flex-col items-center justify-center px-5">
+        {/* 假名舞台：高度随反馈态瞬时切换（不做布局动画）；假名恒为 128px，
+            视觉缩放全部交给 GPU transform（FLIP），与图片缩放走同一条合成管线 */}
+        <div
+          className={`flex items-center justify-center overflow-visible
+            ${isTouch && feedback ? 'h-[72px]' : 'h-[128px]'}`}
         >
-          {displayedChar}
-        </span>
-
-        <span className="text-xs text-gray-300">
-          {question.script === 'hiragana' ? '平假名' : '片假名'}
-        </span>
-
-        <div className="w-full max-w-sm">
-          {isTouch ? (
-            // 仅用于展示的「输入框」：不可聚焦，系统输入法不会弹出
-            <div className={`${answerBoxClass} tracking-[0.3em] select-none`}>
-              {feedback ? (
-                <span className="font-mono">{input}</span>
-              ) : input ? (
-                <span className="font-mono">{input}</span>
-              ) : (
-                <span className="text-gray-400 tracking-normal">输入罗马音...</span>
-              )}
-              {!feedback && <span className="quiz-caret ml-0.5" />}
-            </div>
-          ) : (
-            <input
-              ref={inputRef}
-              type="text"
-              value={input}
-              onChange={(e) => {
-                // 不使用 disabled：禁用状态无法 focus，会导致手机上无法唤起键盘
-                if (feedback) return
-                setInput(e.target.value)
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  if (feedback) handleNext()
-                  else handleSubmit()
-                }
-              }}
-              placeholder="输入罗马音..."
-              autoFocus
-              autoComplete="off"
-              autoCapitalize="off"
-              autoCorrect="off"
-              spellCheck={false}
-              className={answerBoxClass}
-            />
-          )}
+          <span
+            ref={kanaRef}
+            key={questionKey}
+            className="text-9xl font-light text-gray-900 select-none leading-none animate-card-in"
+          >
+            {displayedChar}
+          </span>
         </div>
 
-        {/* 桌面端：确认按钮 / 反馈操作区；触屏端这些操作由自绘键盘承担 */}
-        {!isTouch && !feedback && (
-          <button
-            onClick={handleSubmit}
-            disabled={!input.trim()}
-            className="w-full max-w-sm py-4 rounded-xl bg-blue-500 text-white
-                       font-medium text-base disabled:opacity-30
-                       active:bg-blue-600 transition-colors min-h-[48px]"
-          >
-            确认
-          </button>
-        )}
-        {!isTouch && feedback && (
-          <div className="w-full max-w-sm flex flex-col items-center gap-4 animate-feedback-in">
-            <div className={`text-center px-5 py-4 rounded-xl w-full
-              ${feedback.correct ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-              <p className="text-lg font-bold">
-                {feedback.correct ? '✓ 正确' : '✗ 错误'}
-              </p>
-              {!feedback.correct && (
-                <p className="text-sm mt-1">
-                  正确读音：<span className="font-mono font-bold">{feedback.expected}</span>
-                </p>
-              )}
-            </div>
+        {/* 下方整组（标签/答案/反馈）作为 FLIP 单元整体平移 */}
+        <div ref={lowerRef} className="w-full max-w-sm flex flex-col items-center">
+          <span className="text-xs text-gray-300 mb-3">
+            {question.script === 'hiragana' ? '平假名' : '片假名'}
+          </span>
 
-            <div className="flex gap-3 w-full">
+          <div className="w-full mb-3">
+            {isTouch ? (
+              // 仅用于展示的「输入框」：不可聚焦，系统输入法不会弹出
+              <div className={`${answerBoxClass} tracking-[0.3em] select-none`}>
+                {feedback ? (
+                  <span className="font-mono">{input}</span>
+                ) : input ? (
+                  <span className="font-mono">{input}</span>
+                ) : (
+                  <span className="text-gray-400 tracking-normal">输入罗马音...</span>
+                )}
+                {!feedback && <span className="quiz-caret ml-0.5" />}
+              </div>
+            ) : (
+              <input
+                ref={inputRef}
+                type="text"
+                value={input}
+                onChange={(e) => {
+                  // 不使用 disabled：禁用状态无法 focus，会导致手机上无法唤起键盘
+                  if (feedback) return
+                  setInput(e.target.value)
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    if (feedback) handleNext()
+                    else handleSubmit()
+                  }
+                }}
+                placeholder="输入罗马音..."
+                autoFocus
+                autoComplete="off"
+                autoCapitalize="off"
+                autoCorrect="off"
+                spellCheck={false}
+                className={answerBoxClass}
+              />
+            )}
+          </div>
+
+          {/* 桌面端：确认按钮 / 反馈操作区；触屏端这些操作由自绘键盘承担 */}
+          {!isTouch && !feedback && (
+            <button
+              onClick={handleSubmit}
+              disabled={!input.trim()}
+              className="w-full py-4 rounded-xl bg-blue-500 text-white
+                         font-medium text-base disabled:opacity-30
+                         active:bg-blue-600 transition-colors min-h-[48px]"
+            >
+              确认
+            </button>
+          )}
+          {!isTouch && feedback && (
+            <div className="w-full flex flex-col items-center gap-4 animate-feedback-in">
+              <div className={`text-center px-5 py-4 rounded-xl w-full
+                ${feedback.correct ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+                <p className="text-lg font-bold">
+                  {feedback.correct ? '✓ 正确' : '✗ 错误'}
+                </p>
+                {!feedback.correct && (
+                  <p className="text-sm mt-1">
+                    正确读音：<span className="font-mono font-bold">{feedback.expected}</span>
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={speak}
+                  className="flex-1 py-4 rounded-xl bg-gray-100 text-gray-700
+                             font-medium text-base active:bg-gray-200
+                             transition-colors min-h-[48px]"
+                >
+                  🔊 听发音
+                </button>
+                <button
+                  onClick={handleNext}
+                  className="flex-1 py-4 rounded-xl bg-blue-500 text-white
+                             font-medium text-base active:bg-blue-600
+                             transition-colors min-h-[48px]"
+                >
+                  下一题
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 触屏端反馈：保持紧凑，键盘上的回车即「下一题」 */}
+          {isTouch && feedback && (
+            <div className="w-full animate-feedback-in">
+              <div className={`text-center px-5 py-2.5 rounded-xl
+                ${feedback.correct ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+                <p className="text-base font-bold">
+                  {feedback.correct ? '✓ 正确' : '✗ 错误'}
+                  {!feedback.correct && (
+                    <span className="text-sm font-normal ml-2">
+                      正确读音：<span className="font-mono font-bold">{feedback.expected}</span>
+                    </span>
+                  )}
+                </p>
+              </div>
               <button
                 onClick={speak}
-                className="flex-1 py-4 rounded-xl bg-gray-100 text-gray-700
-                           font-medium text-base active:bg-gray-200
-                           transition-colors min-h-[48px]"
+                className="mt-1.5 w-full py-2 rounded-xl bg-gray-100 text-gray-600
+                           text-sm font-medium active:bg-gray-200 transition-colors"
               >
                 🔊 听发音
               </button>
-              <button
-                onClick={handleNext}
-                className="flex-1 py-4 rounded-xl bg-blue-500 text-white
-                           font-medium text-base active:bg-blue-600
-                           transition-colors min-h-[48px]"
-              >
-                下一题
-              </button>
             </div>
-          </div>
-        )}
-
-        {/* 触屏端反馈：保持紧凑，键盘上的回车即「下一题」 */}
-        {isTouch && feedback && (
-          <div className="w-full max-w-sm animate-feedback-in">
-            <div className={`text-center px-5 py-2.5 rounded-xl
-              ${feedback.correct ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-              <p className="text-base font-bold">
-                {feedback.correct ? '✓ 正确' : '✗ 错误'}
-                {!feedback.correct && (
-                  <span className="text-sm font-normal ml-2">
-                    正确读音：<span className="font-mono font-bold">{feedback.expected}</span>
-                  </span>
-                )}
-              </p>
-            </div>
-            <button
-              onClick={speak}
-              className="mt-1.5 w-full py-2 rounded-xl bg-gray-100 text-gray-600
-                         text-sm font-medium active:bg-gray-200 transition-colors"
-            >
-              🔊 听发音
-            </button>
-          </div>
-        )}
+          )}
+        </div>
       </main>
 
       {isTouch && (
