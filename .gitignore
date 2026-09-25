@@ -21,6 +21,9 @@ test-results/
 playwright-report/
 blob-report/
 
+# 演示动图录制的中间产物与成品（webm/gif/mp4），不入库
+demo/output/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

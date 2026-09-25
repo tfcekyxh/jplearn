@@ -15,6 +15,9 @@ bun run lint         # ESLint
 bun run tsc --noEmit # TypeScript 类型检查 (strict)
 bun run test:e2e     # 跑 Playwright 端到端测试（自动起 5199 端口的 dev）
 bun run test:e2e:ui  # 可视化 UI 模式
+bun run demo         # 录制三段演示动图的原始 webm（demo/output/raw/）
+bun run demo:convert # webm 转 GIF/MP4（demo/output/clips/）
+bun run demo:all     # 录制 + 转码一条龙
 ```
 
 ## 技术栈
@@ -45,6 +48,7 @@ public/
 scripts/
 └── generate_audio.py # Edge TTS 音频批量生成脚本 (ja-JP-NanamiNeural)
 e2e/                   # Playwright 端到端测试（helpers.ts 公共助手 + 各页面 spec）
+demo/                  # 演示动图录制脚本（与 e2e 隔离；产物 output/ 不入库）
 playwright.config.ts    # Playwright 配置（专用 5199 端口、系统 Chrome、串行）
 ```
 
@@ -73,6 +77,21 @@ playwright.config.ts    # Playwright 配置（专用 5199 端口、系统 Chrome
 - 关键选择器：按钮文案「上一张」「下一张」「确认」「下一题」「我会了」「不会」「再来一轮」「返回首页」「← 首页」；输入框 placeholder「输入罗马音...」；发音按钮 aria-label「播放 xxx 的发音」；位置计数「1 / 46」「1 / 28」；行筛选 chip 文案「あ行」「全部」等。
 - 音频 `new Audio().play()` 在无头环境可能 reject，代码已 catch，e2e 不做音频断言。
 - 新增/改动功能时，按 `e2e/home.spec.ts` 的写法补对应 spec（首页导航、卡片、测验、拼读、手机视口各一份）。
+
+## 演示动图录制（demo/）
+
+对外演示用：把三个核心功能录成 GIF / MP4——`01-cards`（首页入口 · 翻卡 · 行筛选 · AI口诀）、`02-quiz`（触屏自绘罗马音键盘答题，对/错反馈）、`03-reading`（单词认读 · 会/不会分流 · 完成统计 · 再来一轮）。
+
+- **与 e2e 完全隔离**：`demo/playwright.config.ts` 的 `testDir` 是 `demo/scripts`，根配置是 `./e2e`，`bun run test:e2e` 看不到演示脚本。产物落 `demo/output/`（已 gitignore），**只有源码入库**。demo 有自己的 `tsconfig.json`（types 用 `bun`、lib ES2022、仅放宽 `strictBindCallApply`——被复用引入的 e2e 探针代码既有写法所致，不要顺手改 e2e 文件）。
+- **一次性依赖**：`bunx playwright install ffmpeg`（screencast 编码必需，`assert-env.ts` globalSetup 会拦）+ `brew install ffmpeg gifski`（转码用；Playwright 自带 ffmpeg 缺 libx264，不能转 MP4）。
+- **录制走 `page.screencast` 显式开关，不要配 `use.video`**：后者从 context 建好就开录，白屏与准备步骤都进视频，还给每个动作加高亮延迟。`startClip`/`stopClip` 在 `demo/scripts/demo-utils.ts`，`fixtures.ts` 用 auto fixture 在用例失败时兜底停录落盘。
+- **手机触屏模拟三件套**：`browserName: 'chromium' + channel: 'chrome'` + `isMobile: true` + `hasTouch: true`，视口 390×844、`deviceScaleFactor: 1`。测验页靠 `matchMedia('(pointer: coarse)')` 决定渲染自绘键盘，缺一个都不会出现。**不要展开 `devices['iPhone 13']`**：它带 `defaultBrowserType: 'webkit'` 会把 project 带到 webkit（`channel: 'chrome'` 直接报 Unsupported webkit channel）。viewport 必须与 `screencast.start` 的 `size` 一致，否则画面缩放发虚。
+- **自绘触摸点而非桌面箭头**：本应用移动优先，`touchOverlay` 注入一个 44px 半透明蓝圆 + 按下涟漪（录屏像素不含系统光标）。所有点击必须走 `moveTo`/`moveAndClick`（裸 `locator.click()` 会让触点瞬移）；触点 CSS 补间是 300ms——12fps 动图里 600px 的长滑少于 300ms 会被看成瞬移。
+- **纯前端的数据播种**：没有后端账号 / storageState，IndexedDB 又不跨 context 共享，每片段在浏览器内自播种：`resetAndSeed(page, { learned, quizStats, mnemonics })`。首页从不打开数据库，播种必须自己以 v2 `open` 并在 `onupgradeneeded` 建全 5 个 store，不能假设 store 已存在；且 `transaction()` 的 NotFoundError 在 `onsuccess` 回调里同步抛、**不在 Promise executor 调用栈**，不 try/catch 会让 evaluate 永久挂起。测验片段用 `openQuizWithSeed`（播种 + e2e 的 `armLearnedLoadedProbe`/`waitForLearnedLoaded` 等题库收敛探针一步到位）。
+- **AI 口诀同样严禁打真实 GLM**：复用 e2e 的 `mockMnemonicsApi(page, batch, single, delayMs)`，1.3s 延迟用来放大「AI生成中...」中间态。
+- **outputDir 不能指向 `RAW_DIR`**：Playwright 每次启动清空 outputDir，分条补录会把已录 webm 一起删掉；失败产物走默认 `test-results/`，webm 单独存 `demo/output/raw/`。单条重录：`bun run demo -- --grep 01`，之后 `bun run demo:convert` 即可，不必全重录。
+- **转码**（`demo/scripts/convert.ts`）：GIF 走 ffmpeg 管道喂 gifski（跨帧调色板，中文抗锯齿不发灰），MP4 用 ffmpeg/libx264；竖屏 GIF 宽 360（`scale=360:-2` 保偶数高），单条超 3MB 打印告警。
+- **观感取舍**：拼读页 28 张不能全慢演，前 2 张完整演示（发音 + 我会了/不会），其余用 `tapAt` 原地连点；连点间隔 320ms（卡片入场动画 250ms，间隔太短每帧都切在淡入中途，动图会变成每秒数次白闪）。
 
 ## 当前进度
 

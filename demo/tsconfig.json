@@ -1,0 +1,13 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "types": ["bun"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    // e2e/helpers.ts 的事务探针用 ...rest: unknown[] 透传 .call 参数，
+    // 严格 bind/call 检查会报错；那是测试代码的既有写法，不应为录制工具
+    // 改动它，这里只放宽这一项，其余严格检查照旧
+    "strictBindCallApply": false,
+    "noEmit": true
+  },
+  "include": ["scripts", "playwright.config.ts"]
+}
